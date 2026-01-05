@@ -13,9 +13,8 @@
         .movie-card:hover { transform: scale(1.05); border: 1px solid #3b82f6; }
         .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.95); overflow-y: auto; }
         .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        select, input { border: 1px solid rgba(255,255,255,0.2) !important; font-size: 12px !important; }
-        .cast-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; transition: 0.3s; }
-        .cast-img:hover { transform: scale(1.1); border-color: white; }
+        .cast-img { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
     </style>
@@ -27,9 +26,9 @@
             <div class="flex items-center gap-2">
                 <span class="text-lg font-black text-blue-500 italic shrink-0" onclick="location.reload()">AMNESFUBBIA</span>
                 <div class="relative flex-grow">
-                    <input type="text" id="searchInput" placeholder="Cari judul atau pemeran..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white">
+                    <input type="text" id="searchInput" placeholder="Cari judul atau pemeran..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
                 </div>
-                <button onclick="loadMovies()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs">CARI</button>
+                <button onclick="loadMovies()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs uppercase">CARI</button>
             </div>
             <div class="flex gap-1.5">
                 <select id="yearFilter" onchange="loadMovies()" class="w-1/3 bg-[#000] p-2 rounded outline-none text-white text-[10px]">
@@ -41,7 +40,6 @@
                     <option value="JP">Jepang</option>
                     <option value="US">USA</option>
                     <option value="ID">Indonesia</option>
-                    <option value="KR">Korea</option>
                 </select>
                 <select id="typeFilter" onchange="loadMovies()" class="w-1/3 bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px]">
                     <option value="">Tipe: Semua</option>
@@ -58,7 +56,7 @@
 
     <div id="movieModal" class="modal flex items-center justify-center p-2">
         <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 shadow-2xl">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-white bg-blue-600 w-9 h-9 rounded-full z-50 flex items-center justify-center shadow-lg">✕</button>
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-white bg-blue-600 w-9 h-9 rounded-full z-50 flex items-center justify-center">✕</button>
             <div id="modalContent" class="flex flex-col md:flex-row"></div>
         </div>
     </div>
@@ -74,11 +72,9 @@
             const country = document.getElementById('countryFilter').value;
             const type = document.getElementById('typeFilter').value;
             const query = document.getElementById('searchInput').value;
-            
             grid.innerHTML = '<p class="col-span-full text-center text-xs text-gray-500 py-20 italic">Memuat koleksi...</p>';
 
             let url = customUrl || `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc&language=id-ID`;
-            
             if (!customUrl) {
                 if (year) url += `&primary_release_year=${year}`;
                 if (country) url += `&with_origin_country=${country}`;
@@ -90,10 +86,9 @@
             try {
                 const res = await fetch(url);
                 const data = await res.json();
-                // Jika customUrl adalah credits pemeran, data ada di .cast
-                const results = data.results || data.cast || [];
+                const results = data.results || data.cast || data.combined_credits?.cast || [];
                 displayMovies(results);
-            } catch (err) { grid.innerHTML = '<p class="text-center py-20">Koneksi terputus.</p>'; }
+            } catch (err) { grid.innerHTML = '<p class="text-center py-20 text-xs">Error Koneksi.</p>'; }
         }
 
         function displayMovies(results) {
@@ -101,32 +96,18 @@
             grid.innerHTML = '';
             results.forEach(item => {
                 const isPerson = item.media_type === 'person' || (!item.title && item.name);
-                
                 if (isPerson) {
                     const card = document.createElement('div');
                     card.className = 'movie-card text-center p-2 flex flex-col items-center justify-center';
                     card.onclick = () => loadMovies(`${BASE_URL}/person/${item.id}/combined_credits?api_key=${API_KEY}&language=id-ID`);
-                    card.innerHTML = `
-                        <img src="${item.profile_path ? IMG_URL+item.profile_path : 'https://via.placeholder.com/500x750?text=No+Photo'}" class="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-2">
-                        <h3 class="text-[9px] font-bold text-blue-400 leading-tight">Pemeran:<br>${item.name}</h3>
-                    `;
+                    card.innerHTML = `<img src="${item.profile_path ? IMG_URL+item.profile_path : 'https://via.placeholder.com/150'}" class="w-16 h-16 rounded-full object-cover border-2 border-blue-500 mb-2"><h3 class="text-[9px] font-bold text-blue-400">Pemeran:<br>${item.name}</h3>`;
                     grid.appendChild(card);
                 } else {
                     if(!item.poster_path) return;
                     const card = document.createElement('div');
                     card.className = 'movie-card cursor-pointer group';
                     card.onclick = () => showDetail(item.id);
-                    card.innerHTML = `
-                        <div class="relative">
-                            <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover group-hover:brightness-50 transition">
-                            <div class="absolute top-1 left-1 bg-blue-600 text-[8px] font-bold px-1 rounded">HD</div>
-                            <div class="absolute bottom-1 right-1 bg-black/60 text-yellow-400 text-[8px] px-1 rounded">★ ${item.vote_average ? item.vote_average.toFixed(1) : '0'}</div>
-                        </div>
-                        <div class="p-1.5">
-                            <h3 class="text-[10px] font-bold truncate text-gray-100">${item.title}</h3>
-                            <p class="text-[9px] text-gray-500 mt-0.5">${item.release_date ? item.release_date.split('-')[0] : 'N/A'}</p>
-                        </div>
-                    `;
+                    card.innerHTML = `<div class="relative"><img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover group-hover:brightness-50 transition"><div class="absolute top-1 left-1 bg-blue-600 text-[8px] font-bold px-1 rounded shadow">HD</div><div class="absolute bottom-1 right-1 bg-black/60 text-yellow-400 text-[8px] px-1 rounded">★ ${item.vote_average.toFixed(1)}</div></div><div class="p-1.5"><h3 class="text-[10px] font-bold truncate text-gray-100">${item.title}</h3><p class="text-[9px] text-gray-500 mt-0.5">${item.release_date ? item.release_date.split('-')[0] : 'N/A'}</p></div>`;
                     grid.appendChild(card);
                 }
             });
@@ -135,46 +116,33 @@
         async function showDetail(movieId) {
             const modal = document.getElementById('movieModal');
             const content = document.getElementById('modalContent');
-            
-            // Panggil API Movie, Video, dan Credits sekaligus
             const res = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=id-ID`);
             const movie = await res.json();
-            
             const trailer = movie.videos.results.find(v => v.type === 'Trailer' || v.type === 'Teaser');
-            const cast = movie.credits.cast.slice(0, 8);
+            const cast = movie.credits.cast.slice(0, 10);
 
             content.innerHTML = `
                 <div class="md:w-1/3"><img src="${IMG_URL + movie.poster_path}" class="w-full h-full object-cover"></div>
                 <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
                     <h2 class="text-2xl font-black text-blue-500 mb-1 leading-tight uppercase italic">${movie.title}</h2>
-                    <div class="flex flex-wrap gap-2 text-[10px] text-gray-400 font-bold mb-4">
-                        <span class="bg-white/5 px-2 py-1 rounded">📅 ${movie.release_date || 'N/A'}</span>
-                        <span class="bg-blue-600/20 text-blue-400 px-2 py-1 rounded border border-blue-400/20">⏱ ${movie.runtime || '?'} Mnt</span>
+                    <div class="flex gap-2 text-[10px] text-gray-400 font-bold mb-4 uppercase">
+                        <span class="bg-white/5 px-2 py-1 rounded">📅 ${movie.release_date}</span>
+                        <span class="bg-blue-600/20 text-blue-400 px-2 py-1 rounded">⏱ ${movie.runtime} Min</span>
                     </div>
+                    <p class="text-[11px] text-gray-300 leading-relaxed mb-6 opacity-80">"${movie.overview || 'Sinopsis belum tersedia.'}"</p>
                     
-                    <p class="text-[11px] text-gray-300 leading-relaxed mb-6 italic opacity-80">"${movie.overview || 'Sinopsis belum tersedia dalam Bahasa Indonesia.'}"</p>
-                    
-                    <h4 class="text-[9px] font-black text-gray-500 mb-3 uppercase tracking-[2px]">Pengisi Suara Utama</h4>
+                    <h4 class="text-[9px] font-black text-gray-500 mb-3 uppercase tracking-widest">Pengisi Suara</h4>
                     <div class="flex gap-4 overflow-x-auto pb-4 mb-4 scrollbar-hide">
-                        ${cast.map(c => `
-                            <div class="shrink-0 text-center cursor-pointer group" onclick="closeModal(); loadMovies('${BASE_URL}/person/${c.id}/combined_credits?api_key=${API_KEY}&language=id-ID');">
-                                <img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100?text=No+Photo'}" class="cast-img mb-1 mx-auto group-hover:border-white">
-                                <p class="text-[8px] font-bold w-16 truncate text-gray-400 group-hover:text-blue-400">${c.name}</p>
-                            </div>
-                        `).join('')}
+                        ${cast.map(c => `<div class="shrink-0 text-center cursor-pointer group" onclick="closeModal(); loadMovies('${BASE_URL}/person/${c.id}/combined_credits?api_key=${API_KEY}&language=id-ID');"><img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100'}" class="cast-img mb-1 group-hover:border-white transition"><p class="text-[8px] font-bold w-16 truncate text-gray-400 group-hover:text-blue-400">${c.name}</p></div>`).join('')}
                     </div>
 
-                    ${trailer ? `
-                        <div class="rounded-lg overflow-hidden border border-white/10 mb-6 shadow-2xl aspect-video">
-                            <iframe class="w-full h-full" src="https://www.youtube.com/embed/${trailer.key}?autoplay=0" frameborder="0" allowfullscreen></iframe>
-                        </div>
-                    ` : '<div class="p-4 border border-dashed border-white/10 text-center text-[10px] text-gray-600 mb-6">Trailer tidak tersedia</div>'}
+                    ${trailer ? `<div class="rounded-lg overflow-hidden border border-white/10 mb-6 aspect-video"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${trailer.key}" frameborder="0" allowfullscreen></iframe></div>` : ''}
 
                     <div class="flex flex-col gap-2">
-                        <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-3.5 rounded-lg text-xs font-black hover:bg-blue-700 transition uppercase tracking-widest italic shadow-lg">Mulai Streaming</a>
+                        <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-4 rounded-lg text-xs font-black hover:bg-blue-700 transition uppercase tracking-widest shadow-lg italic">Streaming Sekarang</a>
                         <div class="flex gap-2">
-                            <a href="https://www.goojara.to/external.php?search=${encodeURIComponent(movie.title)}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-lg text-[10px] font-black">DOWNLOAD HD</a>
-                            <a href="https://pahe.li/?s=${encodeURIComponent(movie.title)}" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded-lg text-[10px] font-black border border-white/10">SERVER 2</a>
+                            <a href="https://flashstream.cc/movie/${movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3.5 rounded-lg text-[10px] font-black hover:bg-green-700 transition">DOWNLOAD HD (FLASH)</a>
+                            <a href="https://www.goojara.to/external.php?search=${encodeURIComponent(movie.title)}" target="_blank" class="flex-1 bg-white/10 text-center py-3.5 rounded-lg text-[10px] font-black border border-white/10">ALTERNATIF</a>
                         </div>
                     </div>
                 </div>`;
@@ -182,13 +150,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function closeModal() { 
-            document.getElementById('movieModal').style.display = 'none'; 
-            document.body.style.overflow = 'auto'; 
-            // Menghentikan video saat modal ditutup (opsional dengan merefresh modal)
-            document.getElementById('modalContent').innerHTML = '';
-        }
-
+        function closeModal() { document.getElementById('movieModal').style.display = 'none'; document.body.style.overflow = 'auto'; document.getElementById('modalContent').innerHTML = ''; }
         window.onclick = (e) => { if (e.target.id == 'movieModal') closeModal(); }
         loadMovies();
     </script>
