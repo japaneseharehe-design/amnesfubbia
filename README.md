@@ -1,2 +1,0 @@
-# amnesfubbia
-movie animation
