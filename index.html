@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amnesfubbia - Animation Database</title>
+    <title>Amnesfubbia - Animation Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -24,24 +24,32 @@
             <div class="flex items-center gap-2">
                 <span class="text-lg font-black text-blue-500 italic shrink-0" onclick="location.reload()">AMNESFUBBIA</span>
                 <div class="relative flex-grow">
-                    <input type="text" id="searchInput" placeholder="Search title..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
+                    <input type="text" id="searchInput" placeholder="Cari animasi..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
                 </div>
-                <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs uppercase">SEARCH</button>
+                <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs">CARI</button>
             </div>
-            <div class="flex gap-1.5">
-                <select id="yearFilter" onchange="loadMovies()" class="w-1/3 bg-[#000] p-2 rounded outline-none text-white text-[10px]">
-                    <option value="">Year (All)</option>
+            <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                <select id="yearFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
+                    <option value="">Semua Tahun</option>
                     <script>for(let y=2026; y>=1920; y--) document.write(`<option value="${y}">${y}</option>`);</script>
                 </select>
-                <select id="countryFilter" onchange="loadMovies()" class="w-1/3 bg-[#000] p-2 rounded outline-none text-white text-[10px]">
-                    <option value="">Country</option>
-                    <option value="JP">Japan</option>
-                    <option value="US">USA</option>
+                <select id="countryFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
+                    <option value="">Negara</option>
+                    <option value="ID">Indonesia 🇮🇩</option>
+                    <option value="JP">Jepang 🇯🇵</option>
+                    <option value="US">Amerika 🇺🇸</option>
+                    <option value="CN">China 🇨🇳</option>
+                    <option value="KR">Korea 🇰🇷</option>
+                    <option value="FR">Prancis 🇫🇷</option>
+                    <option value="GB">Inggris 🇬🇧</option>
+                    <option value="DE">Jerman 🇩🇪</option>
+                    <option value="CA">Kanada 🇨🇦</option>
+                    <option value="ES">Spanyol 🇪🇸</option>
                 </select>
-                <select id="typeFilter" onchange="loadMovies()" class="w-1/3 bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px]">
-                    <option value="">Type: All</option>
-                    <option value="short">Short Movies (Special)</option>
-                    <option value="movie">Feature Film</option>
+                <select id="typeFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px] min-w-[120px]">
+                    <option value="">Semua Tipe</option>
+                    <option value="short">Film Pendek / OVA</option>
+                    <option value="movie">Bioskop (Panjang)</option>
                 </select>
             </div>
         </div>
@@ -68,19 +76,20 @@
             const country = document.getElementById('countryFilter').value;
             const type = document.getElementById('typeFilter').value;
             
-            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Loading...</p>';
+            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Koleksi...</p>';
 
-            // URL Dasar khusus animasi
-            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc&page=1`;
+            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`;
             
             if (year) url += `&primary_release_year=${year}`;
             if (country) url += `&with_origin_country=${country}`;
             
-            // Logika baru untuk Film Pendek agar lebih banyak hasilnya
             if (type === 'short') {
-                url += `&with_runtime.lte=40&include_video=true`;
+                // Logika diperluas: durasi sangat pendek dan urutan dari yang paling populer
+                url += `&with_runtime.lte=45&sort_by=popularity.desc`;
             } else if (type === 'movie') {
-                url += `&with_runtime.gte=60`;
+                url += `&with_runtime.gte=60&sort_by=popularity.desc`;
+            } else {
+                url += `&sort_by=popularity.desc`;
             }
 
             const res = await fetch(url);
@@ -92,8 +101,8 @@
             const query = document.getElementById('searchInput').value;
             if (!query) return;
             const grid = document.getElementById('movieGrid');
-            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Searching...</p>';
-            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}`;
+            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Mencari...</p>';
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
             const res = await fetch(url);
             const data = await res.json();
             const animationOnly = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
@@ -103,8 +112,8 @@
         async function loadCastMovies(personId) {
             closeModal();
             const grid = document.getElementById('movieGrid');
-            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Loading Cast Collections...</p>';
-            const url = `https://api.themoviedb.org/3/person/${personId}/movie_credits?api_key=${API_KEY}`;
+            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Animasi Pemeran...</p>';
+            const url = `https://api.themoviedb.org/3/person/${personId}/movie_credits?api_key=${API_KEY}&language=en-US`;
             const res = await fetch(url);
             const data = await res.json();
             const animationOnly = data.cast.filter(m => m.genre_ids && m.genre_ids.includes(16));
@@ -114,7 +123,10 @@
         function displayMovies(movies) {
             const grid = document.getElementById('movieGrid');
             grid.innerHTML = '';
-            if (movies.length === 0) grid.innerHTML = '<p class="col-span-full text-center py-20 text-gray-500">No animation found.</p>';
+            if (!movies || movies.length === 0) {
+                grid.innerHTML = '<p class="col-span-full text-center py-20 text-gray-500 text-xs">Tidak ditemukan.</p>';
+                return;
+            }
             movies.forEach(item => {
                 if(!item.poster_path) return;
                 const card = document.createElement('div');
@@ -127,7 +139,7 @@
                     </div>
                     <div class="p-2">
                         <h3 class="text-[10px] font-bold truncate">${item.title}</h3>
-                        <p class="text-[9px] text-gray-500">${item.release_date ? item.release_date.split('-')[0] : ''}</p>
+                        <p class="text-[9px] text-gray-500">${item.release_date ? item.release_date.split('-')[0] : 'N/A'}</p>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -137,18 +149,18 @@
         async function showDetail(movieId) {
             const modal = document.getElementById('movieModal');
             const content = document.getElementById('modalContent');
-            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits`);
+            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
             const movie = await res.json();
             
-            const trailer = movie.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
+            const trailer = movie.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser' || v.type === 'Clip'));
             const cast = movie.credits.cast.slice(0, 8);
 
             content.innerHTML = `
                 <div class="md:w-1/3"><img src="${IMG_URL + movie.poster_path}" class="w-full h-full object-cover"></div>
                 <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
-                    <h2 class="text-xl font-black text-blue-500 uppercase italic mb-1">${movie.title}</h2>
+                    <h2 class="text-xl font-black text-blue-500 uppercase mb-1 italic">${movie.title}</h2>
                     <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase">📅 ${movie.release_date} | ⏱ ${movie.runtime} MIN</p>
-                    <p class="text-[11px] text-gray-300 leading-relaxed mb-6">${movie.overview || 'No description available.'}</p>
+                    <p class="text-[11px] text-gray-300 leading-relaxed mb-6">${movie.overview || 'Description not available.'}</p>
                     
                     <p class="text-[9px] font-bold text-gray-600 mb-2 uppercase italic">Voice Cast:</p>
                     <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
@@ -169,8 +181,8 @@
                     <div class="flex flex-col gap-2">
                         <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-3.5 rounded-lg text-xs font-black uppercase italic tracking-widest">STREAMING</a>
                         <div class="flex gap-2">
-                            <a href="https://dl.vidsrc.vip/movie/${movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-lg text-[10px] font-black uppercase">DIRECT DOWNLOAD</a>
-                            <a href="https://www.google.com/search?q=${encodeURIComponent(movie.title)}+animation+download+mkv" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded-lg text-[10px] font-black uppercase border border-white/10">SERVER 2</a>
+                            <a href="https://dl.vidsrc.vip/movie/${movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-lg text-[10px] font-black uppercase">DOWNLOAD HD</a>
+                            <a href="https://flashstream.cc/download/${movie.id}" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded-lg text-[10px] font-black uppercase border border-white/10">FLASHSTREAM</a>
                         </div>
                     </div>
                 </div>`;
